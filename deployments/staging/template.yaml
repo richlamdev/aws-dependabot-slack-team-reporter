@@ -17,6 +17,10 @@ Globals:
     MemorySize: 128
     Architectures:
       - arm64
+  Tags:
+    DeployedBy: SecurityTeam
+    GithubOrg: !Ref GitHubOrg
+    ManagedWith: AWS-Serverless-CLI
 
 Resources:
   DependabotFunction:
