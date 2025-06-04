@@ -1,0 +1,66 @@
+# template.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: 'AWS Lambda function to send Dependabot alerts to Slack'
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Description: GitHub organization for this deployment
+    Default: production
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 900
+    MemorySize: 128
+    Architectures:
+      - arm64
+
+Resources:
+  DependabotFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-DependabotAlertsToSlackTeams-${GitHubOrg}"
+      Handler: dependabot-slack-team.lambda_handler
+      CodeUri: ../../src
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - arn:aws:secretsmanager:us-east-1:123456789012:secret:production/GITHUB_APP_PEM-abcdef
+              - arn:aws:secretsmanager:us-east-1:123456789012:secret:production/GITHUB_APP_ID-abcdef
+              - arn:aws:secretsmanager:us-east-1:123456789012:secret:production/TEAM_TO_CHANNEL-abcdef
+      Environment:
+        Variables:
+          GITHUB_ORG: !Ref GitHubOrg
+      Events:
+        DependabotAlertsToSlackSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 13 * * ? *)   # 1300hrs Zulu or 0800hrs EST
+            Name: !Sub "${AWS::StackName}-schedule-${GitHubOrg}"
+            Description: 'Trigger Lambda function to send Dependabot alerts to Slack'
+
+  LambdaLogRetention:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${DependabotFunction}
+      RetentionInDays: 14
+
+Outputs:
+  DependabotFunctionArn:
+    Description: "ARN of the Lambda function"
+    Value: !GetAtt DependabotFunction.Arn
+
+  DependabotFunctionName:
+    Description: "Name of the Lambda function"
+    Value: !Ref DependabotFunction
+
+  LogGroupName:
+    Description: "CloudWatch Log Group for the Lambda function"
+    Value: !Sub "/aws/lambda/${DependabotFunction}"
