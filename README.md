@@ -49,9 +49,11 @@ Set the following Parameter variable in the template file, or change it when pro
 
 Set the following values in AWS Secrets manager:
 
-- `GITHUB_APP_ID` – GitHub App ID
-- `GITHUB_APP_SECRET_NAME` – GitHub App PEM key
-- `SLACK_TEAM_MAPPING` – JSON map of team slugs to Slack webhook URLs
+- `GITHUB_APP_ID`   – GitHub App ID
+- `GITHUB_APP_PEM`  – GitHub App PEM key
+- `TEAM_TO_CHANNEL` – JSON map of team slugs to Slack webhook URLs
+
+After setting the above values in AWS Secrets manager, replace the placeholder ARNs in the template.yaml file
 
 Example `SLACK_TEAM_MAPPING`:
 
