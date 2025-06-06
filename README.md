@@ -73,6 +73,18 @@ and likewise keeps the retrieval simple.
 
 Authenticate to AWS via CLI.
 
+Enter the appropriate directory for deployment
+
+```
+cd deployments/staging
+```
+
+or
+
+```
+cd deployments/production
+```
+
 Then execute the following commands:
 ```
 sam build
@@ -83,6 +95,8 @@ Follow the prompts to configure the deployment stack, region, and parameters.
 
 Optionally, monitor the CloudFormation stack in the AWS Management Console.
 When the stack is complete, you can find the Lambda function ARN in the Outputs section.
+Verify the environment variable, the Lambda role, and Eventbridge schedule and test the lambda.
+Check the CloudWatch logs for errors and verify any updates to the Slack channels.
 
 ---
 
