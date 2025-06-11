@@ -5,11 +5,11 @@
 This setup deploys a Lambda that performs the following tasks:
 
 1. Utilizes a GitHub App for authentication
-2. Reads repositories to parse `.github/CODEOWNERS`
+2. Obtains a list of non-archived repositories
+3. Reads repositories to parse `.github/CODEOWNERS`
     -in the absence of CODEOWNERS file, the `security team` becaomes the default
     (this is to have the security team track down and assign appropriate ownership)
-3. Obtains a list of non-archived repositories
-4. Fetches Dependabot alerts for each repository
+4. Fetches open Dependabot alerts for each repository
 5. Posts alerts to Slack channels based on team ownership
 
 ---
@@ -118,6 +118,12 @@ GitHub App must have these permissions:
 ---
 
 ## 🧪 Testing
+
+Validate and lint the template configuration with the following command:
+
+```
+sam validate --lint
+```
 
 You can test the Lambda functions locally using the SAM CLI (docker desktop or docker engine must be running):
 
