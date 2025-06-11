@@ -135,26 +135,47 @@ def init_headers():
 
 
 def get_dependabot_alerts(repo):
-    url = f"https://api.github.com/repos/{GITHUB_ORG}/{repo}/dependabot/alerts"
-    r = http.request("GET", url, headers=HEADERS, preload_content=False)
+    alerts = []
+    url = f"https://api.github.com/repos/{GITHUB_ORG}/{repo}/dependabot/alerts?state=open&per_page=100"
 
-    try:
-        body = r.read()
-        text_body = body.decode("utf-8") if body else ""
+    while url:
+        r = http.request("GET", url, headers=HEADERS, preload_content=False)
+        try:
+            body = r.read()
+            text_body = body.decode("utf-8") if body else ""
 
-        if r.status != 200:
-            logger.warning(
-                f"Failed to fetch alerts for {repo}: {r.status} {text_body}"
-            )
-            return []
+            if r.status != 200:
+                logger.warning(
+                    f"Failed to fetch alerts for {repo}: {r.status} {text_body}"
+                )
+                break
 
-        if not text_body:
-            logger.warning(f"No data received for dependabot alerts in {repo}")
-            return []
+            if not text_body:
+                logger.warning(
+                    f"No data received for dependabot alerts in {repo}"
+                )
+                break
 
-        return json.loads(text_body)
-    finally:
-        r.release_conn()
+            alerts.extend(json.loads(text_body))
+
+            # Parse the Link header for pagination
+            link_header = r.headers.get("Link")
+            next_url = None
+
+            if link_header:
+                links = link_header.split(",")
+                for link in links:
+                    parts = link.split(";")
+                    if len(parts) == 2 and 'rel="next"' in parts[1]:
+                        next_url = parts[0].strip().strip("<>")
+                        break
+
+            url = next_url
+
+        finally:
+            r.release_conn()
+
+    return alerts
 
 
 def get_codeowners_owner(repo):
@@ -349,7 +370,7 @@ def get_all_non_archived_repos():
 def lambda_handler(event, context):
     init_headers()
     repos = get_all_non_archived_repos()
-    # repos = ["placeholder-repo-name"]  # override for testing
+    # repos = ["thm"]  # override for testing
     # logger.info(f"Repos to process: {repos}")
 
     if not repos:
@@ -388,6 +409,12 @@ def lambda_handler(event, context):
             channel = TEAM_TO_CHANNEL[owner]
 
         for entry in entries:
+            if not entry["alerts"]:
+                logger.info(
+                    f"Skipping {entry['repo']} — no open Dependabot alerts."
+                )
+                continue
+
             logger.info(
                 f"Repo: {entry['repo']}, Owner: {entry['owner']}, channel: {channel}"
             )
