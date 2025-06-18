@@ -9,6 +9,10 @@ Parameters:
     Type: String
     Description: GitHub organization for this deployment
     Default: production
+  SeverityFilter:
+    Type: String
+    Description: Severity level to filter Dependabot alerts (e.g., low, medium, high, critical)
+    Default: critical
 
 Globals:
   Function:
@@ -42,6 +46,7 @@ Resources:
       Environment:
         Variables:
           GITHUB_ORG: !Ref GitHubOrg
+          SEVERITY_FILTER: !Ref SeverityFilter
       Events:
         DependabotAlertsToSlackSchedule:
           Type: Schedule
