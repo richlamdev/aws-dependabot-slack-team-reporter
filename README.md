@@ -4,13 +4,16 @@
 
 This setup deploys a Lambda that performs the following tasks:
 
-1. Utilizes a GitHub App for authentication
-2. Obtains a list of non-archived repositories
-3. Reads repositories to parse `.github/CODEOWNERS`
+1. Utilizes a GitHub App for authentication.
+2. Obtains a list of non-archived repositories.
+3. Reads repositories to parse `.github/CODEOWNERS`.
     -in the absence of CODEOWNERS file, the `security team` becaomes the default
     (this is to have the security team track down and assign appropriate ownership)
-4. Fetches open Dependabot alerts for each repository
-5. Posts alerts to Slack channels based on team ownership
+4. Fetches open Dependabot alerts for each repository.
+5. Posts alerts to Slack channels based on team ownership.
+6. Severity filter is set by template parameter, adjust parameter and redeploy.
+   Alternatively, adjust the environment variable via AWS console with the Lambda
+   configuration page.
 
 ---
 
