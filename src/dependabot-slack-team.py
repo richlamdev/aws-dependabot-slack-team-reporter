@@ -16,12 +16,23 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 GITHUB_ORG = os.environ["GITHUB_ORG"]
-SEVERITY_FILTER = os.environ.get("SEVERITY_FILTER", "critical").split(",")
+SEVERITY_FILTER = [
+    s.strip().lower()
+    for s in os.environ.get("SEVERITY_FILTER", "critical").split(",")
+]
 
 http = urllib3.PoolManager()
-GITHUB_TOKEN = None
 HEADERS = None
 TEAM_TO_CHANNEL = {}
+
+
+def filter_dependabot_alerts(alerts):
+    return [
+        a
+        for a in alerts
+        if a.get("security_advisory", {}).get("severity", "").lower()
+        in SEVERITY_FILTER
+    ]
 
 
 def get_github_token():
@@ -223,29 +234,16 @@ def format_slack_message(repo, owner, alerts):
         "low": "🟢",
     }
 
-    filtered = [
-        a
-        for a in alerts
-        if a.get("security_advisory", {}).get("severity", "").lower()
-        in SEVERITY_FILTER
-    ]
-
     timestamp = datetime.now(timezone.utc).strftime("%Y-%b-%d %H:%M:%S UTC")
 
-    if not filtered:
-        return {
-            "text": f"*{repo}* — CODEOWNERS: `{owner}`\n_{timestamp}_\n"
-            f"No Dependabot alerts matching filter: {', '.join(SEVERITY_FILTER)}"
-        }
-
-    filtered.sort(
+    alerts.sort(
         key=lambda a: severity_order.get(
             a.get("security_advisory", {}).get("severity", "").lower(), 99
         )
     )
 
     counts = {}
-    for a in filtered:
+    for a in alerts:
         sev = a["security_advisory"]["severity"].lower()
         counts[sev] = counts.get(sev, 0) + 1
 
@@ -280,7 +278,7 @@ def format_slack_message(repo, owner, alerts):
 
         for alert in [
             a
-            for a in filtered
+            for a in alerts
             if a["security_advisory"]["severity"].lower() == sev
         ][:10]:
             advisory = alert["security_advisory"]
@@ -370,8 +368,6 @@ def get_all_non_archived_repos():
 def lambda_handler(event, context):
     init_headers()
     repos = get_all_non_archived_repos()
-    # repos = ["thm"]  # override for testing
-    # logger.info(f"Repos to process: {repos}")
 
     if not repos:
         logger.error("Repository list is empty.")
@@ -409,9 +405,10 @@ def lambda_handler(event, context):
             channel = TEAM_TO_CHANNEL[owner]
 
         for entry in entries:
-            if not entry["alerts"]:
+            filtered_alerts = filter_dependabot_alerts(entry["alerts"])
+            if not filtered_alerts:
                 logger.info(
-                    f"Skipping {entry['repo']} — no open Dependabot alerts."
+                    f"Skipping {entry['repo']} — no alerts matching filter: {SEVERITY_FILTER}"
                 )
                 continue
 
@@ -419,7 +416,7 @@ def lambda_handler(event, context):
                 f"Repo: {entry['repo']}, Owner: {entry['owner']}, channel: {channel}"
             )
             message = format_slack_message(
-                entry["repo"], owner, entry["alerts"]
+                entry["repo"], owner, filtered_alerts
             )
             send_to_slack(message, channel)
             time.sleep(0.5)
