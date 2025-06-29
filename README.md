@@ -72,6 +72,17 @@ it involves additional steps to format the PEM correctly for storage as well as 
 during retrieval.  By keeping it a separate secret it's a straight forward copy and paste to store the key,
 and likewise keeps the retrieval simple.
 
+*Update:*
+To properly format the private key, to use within a JSON blob in AWS Secrets, use Python IDLE and
+paste the key between triple quotes """ (docstring) to preserve line breaks (press enter). Copy
+the output and paste it into the Secrets Manager in the JSON value, do not paste in as plain text.
+Alternatively, you can use the repr() function in Python to obtain a properly formatted string.
+
+To properly retrieve and parse the PEM key, [PowerTools for AWS Lambda](https://docs.powertools.aws.dev/lambda/python/latest/)
+
+Note the source code has not been updated to reflect this improvement, but has been tested and works well.
+
+
 ### 3. Deploy with AWS SAM
 
 Authenticate to AWS via CLI.
